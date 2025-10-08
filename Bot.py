@@ -1,14 +1,10 @@
+#!/usr/bin/env python3
 import os
 import json
 import random
 import logging
 from typing import List
-
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -16,33 +12,14 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 
-# Logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# Import configuration
+from config import BOT_TOKEN, ADMINS, TRUTHS_FILE, DARES_FILE, DEFAULT_TRUTHS, DEFAULT_DARES
 
-# Files for persistence
-TRUTHS_FILE = "truths.json"
-DARES_FILE = "dares.json"
+# Logging setup
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(name)
 
-# Default content (you can edit these or add via admin commands)
-DEFAULT_TRUTHS = [
-    "What is your most embarrassing moment?",
-    "Have you ever lied to your best friend?",
-    "What's a secret you've never told anyone?",
-]
-DEFAULT_DARES = [
-    "Send a funny selfie to this chat.",
-    "Do 10 push-ups and send a photo (optional).",
-    "Record 15 seconds of you singing the first song that plays in your playlist.",
-]
-
-# Admins: list of Telegram user IDs allowed to add/remove items.
-# Put your Telegram integer user id(s) here OR use /myid and then edit this file.
-ADMINS: List[int] = [5268691896]  # example: [123456789]
-
-# Helper functions for file storage
+# File helper functions
 def ensure_file(path: str, default_list):
     if not os.path.exists(path):
         with open(path, "w", encoding="utf-8") as f:
@@ -50,32 +27,31 @@ def ensure_file(path: str, default_list):
 
 def load_list(path: str) -> List[str]:
     ensure_file(path, [])
-    with open(path, "r", encoding="utf-8") as f:
-        try:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, list):
                 return data
-        except Exception as e:
-            logger.warning("Corrupt JSON in %s: %s", path, e)
+    except Exception as e:
+        logger.warning(f"Corrupt JSON in {path}: {e}")
     return []
 
 def save_list(path: str, items: List[str]):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
 
-# Initialize files with defaults if empty
+# Initialize files
 ensure_file(TRUTHS_FILE, DEFAULT_TRUTHS)
 ensure_file(DARES_FILE, DEFAULT_DARES)
 
-# Command handlers
+# Commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Truth", callback_data="truth")],
         [InlineKeyboardButton("Dare", callback_data="dare")],
         [InlineKeyboardButton("Random", callback_data="random")],
     ]
-    reply = "Welcome to Truth & Dare! Choose:"
-    await update.message.reply_text(reply, reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("Welcome to Truth & Dare! Choose:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -83,49 +59,39 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_random_truth():
     truths = load_list(TRUTHS_FILE)
-    if not truths:
-        return "No truths available."
-    return random.choice(truths)
+    return random.choice(truths) if truths else "No truths available."
 
 async def get_random_dare():
     dares = load_list(DARES_FILE)
-    if not dares:
-        return "No dares available."
-    return random.choice(dares)
+    return random.choice(dares) if dares else "No dares available."
 
 async def truth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = await get_random_truth()
-    await update.message.reply_text(f"🟣 Truth: {text}")
+    await update.message.reply_text(f"🟣 Truth: {await get_random_truth()}")
 
 async def dare_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = await get_random_dare()
-    await update.message.reply_text(f"🔴 Dare: {text}")
+    await update.message.reply_text(f"🔴 Dare: {await get_random_dare()}")
 
 async def random_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if random.choice([True, False]):
-        text = await get_random_truth()
-        await update.message.reply_text(f"🟣 Truth: {text}")
+        await update.message.reply_text(f"🟣 Truth: {await get_random_truth()}")
     else:
-        text = await get_random_dare()
-        await update.message.reply_text(f"🔴 Dare: {text}")
+        await update.message.reply_text(f"🔴 Dare: {await get_random_dare()}")
 
+# Callback for inline buttons
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
+
     if data == "truth":
-        text = await get_random_truth()
-        await query.edit_message_text(f"🟣 Truth: {text}")
+        await query.edit_message_text(f"🟣 Truth: {await get_random_truth()}")
     elif data == "dare":
-        text = await get_random_dare()
-        await query.edit_message_text(f"🔴 Dare: {text}")
+        await query.edit_message_text(f"🔴 Dare: {await get_random_dare()}")
     elif data == "random":
         if random.choice([True, False]):
-            text = await get_random_truth()
-            await query.edit_message_text(f"🟣 Truth: {text}")
+            await query.edit_message_text(f"🟣 Truth: {await get_random_truth()}")
         else:
-            text = await get_random_dare()
-            await query.edit_message_text(f"🔴 Dare: {text}")
+            await query.edit_message_text(f"🔴 Dare: {await get_random_dare()}")
 
 # Admin-only decorator
 def admin_only(func):
@@ -133,21 +99,47 @@ def admin_only(func):
         user = update.effective_user
         if user and user.id in ADMINS:
             return await func(update, context)
-        else:
-            msg = "❌ You are not authorized to use this command. Ask an admin to add you."
-            if update.message:
-                await update.message.reply_text(msg)
-            elif update.effective_chat:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text=msg)
+        msg = "❌ You are not authorized to use this command."
+        await update.message.reply_text(msg)
     return wrapper
-
+    # Admin commands
 @admin_only
 async def addtruth(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # usage: /addtruth your truth text...
     text = " ".join(context.args).strip()
     if not text:
         await update.message.reply_text("Usage: /addtruth <truth text>")
         return
     truths = load_list(TRUTHS_FILE)
-    truths.append
-  
+    truths.append(text)
+    save_list(TRUTHS_FILE, truths)
+    await update.message.reply_text("✅ Truth added successfully!")
+
+@admin_only
+async def adddare(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = " ".join(context.args).strip()
+    if not text:
+        await update.message.reply_text("Usage: /adddare <dare text>")
+        return
+    dares = load_list(DARES_FILE)
+    dares.append(text)
+    save_list(DARES_FILE, dares)
+    await update.message.reply_text("✅ Dare added successfully!")
+
+# Main
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("myid", myid))
+    app.add_handler(CommandHandler("truth", truth_cmd))
+    app.add_handler(CommandHandler("dare", dare_cmd))
+    app.add_handler(CommandHandler("random", random_cmd))
+    app.add_handler(CommandHandler("addtruth", addtruth))
+    app.add_handler(CommandHandler("adddare", adddare))
+    app.add_handler(CallbackQueryHandler(callback_handler))
+
+    logger.info("🤖 Bot started successfully!")
+    app.run_polling()
+
+if name == "main":
+    main()
