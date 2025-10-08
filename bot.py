@@ -134,8 +134,8 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))
-    app.add_handler(CommandHandler("truth", truth_cmd))
-    app.add_handler(CommandHandler("dare", dare_cmd))
+    app.add_handler(CommandHandler("truth","tru", truth_cmd))
+    app.add_handler(CommandHandler("dare","dar", dare_cmd))
     app.add_handler(CommandHandler("random", random_cmd))
     app.add_handler(CommandHandler("addtruth", addtruth))
     app.add_handler(CommandHandler("adddare", adddare))
