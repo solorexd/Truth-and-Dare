@@ -16,9 +16,12 @@ from telegram.ext import (
 from config import BOT_TOKEN, ADMINS, TRUTHS_FILE, DARES_FILE, DEFAULT_TRUTHS, DEFAULT_DARES
 
 # Logging setup
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(name)
-
+# Logging setup
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 # File helper functions
 def ensure_file(path: str, default_list):
     if not os.path.exists(path):
