@@ -1,7 +1,7 @@
 import os
 
 # Load bot token (from Heroku config vars or local .env)
-BOT_TOKEN = os.getenv("8249629342:AAEpKXueDGyMpir91bprbdQ8OtotDKvnys8")
+BOT_TOKEN = "8249629342:AAEpKXueDGyMpir91bprbdQ8OtotDKvnys8"
 
 # Admins (Telegram user IDs allowed to add/remove truths/dares)
 ADMINS = [5268691896]  # Example: [123456789]
